@@ -28,15 +28,15 @@ use futuresdr::runtime::Runtime;
 #[derive(Parser, Debug)]
 struct Args {
     /// Gain to apply to the seify source
-    #[clap(short, long, default_value_t = 30.0)]
+    #[clap(short, long, default_value_t = 24.0)]
     gain: f64,
 
     /// Center frequency
-    #[clap(short, long, default_value_t = 100_000_000.0)]
+    #[clap(short, long, default_value_t = 91_900_000.0)]
     frequency: f64,
 
     /// Sample rate
-    #[clap(short, long, default_value_t = 1000000.0)]
+    #[clap(short, long, default_value_t = 2_500_000.0)]
     rate: f64,
 
     /// Seify args
@@ -85,6 +85,8 @@ fn main() -> Result<()> {
 
     // Create the `Flowgraph` where the `Block`s will be added later on
     let mut fg = Flowgraph::new();
+
+    println!("Frequency {}", args.frequency);
 
     // Create a new Seify SDR block with the given parameters
     let src = SourceBuilder::new()
