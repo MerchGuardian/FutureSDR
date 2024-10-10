@@ -6,7 +6,7 @@ edition = "2021"
 [workspace]
 
 [features]
-default = ["soapy"]
+default = []
 aaronia_http = ["futuresdr/aaronia_http"]
 soapy = ["futuresdr/soapy"]
 
