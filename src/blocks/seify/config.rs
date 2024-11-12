@@ -16,6 +16,8 @@ pub struct Config {
     pub freq: Option<f64>,
     /// Gain (in dB)
     pub gain: Option<f64>,
+    /// Is automatic gain control enabled. Mutually exclusive with `gain`.
+    pub enable_agc: bool,
     /// Sample Rate
     pub sample_rate: Option<f64>,
 }
@@ -42,14 +44,16 @@ impl Config {
             if let Some(ref a) = self.antenna {
                 dev.set_antenna(dir, *c, a)?;
             }
-            if let Some(_b) = self.bandwidth {
-                todo!()
+            if let Some(b) = self.bandwidth {
+                dev.set_bandwidth(dir, *c, b)?;
             }
             if let Some(f) = self.freq {
                 dev.set_frequency(dir, *c, f)?;
             }
             if let Some(g) = self.gain {
                 dev.set_gain(dir, *c, g)?;
+            } else if self.enable_agc {
+                dev.enable_agc(dir, *c, true)?;
             }
             if let Some(s) = self.sample_rate {
                 dev.set_sample_rate(dir, *c, s)?;

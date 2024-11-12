@@ -96,7 +96,18 @@ impl<D: DeviceTrait + Clone> Builder<D> {
     }
     /// Gain
     pub fn gain(mut self, g: f64) -> Self {
+        if self.config.enable_agc {
+            panic!("Cannot set manual gain if agc was already enabled");
+        }
         self.config.gain = Some(g);
+        self
+    }
+    /// Enable automatic gain control
+    pub fn enable_agc(mut self) -> Self {
+        if self.config.gain.is_some() {
+            panic!("Cannot enable agc if manual gain was already specified");
+        }
+        self.config.enable_agc = true;
         self
     }
     /// Sample Rate
