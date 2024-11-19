@@ -1,3 +1,23 @@
+use futuresdr::blocks::wasm::HackRf;
+use futuresdr::blocks::Fft;
+use futuresdr::blocks::FftDirection;
+use futuresdr::blocks::MovingAvg;
+use futuresdr::macros::async_trait;
+use futuresdr::macros::connect;
+use futuresdr::runtime::BlockMeta;
+use futuresdr::runtime::BlockMetaBuilder;
+use futuresdr::runtime::Flowgraph;
+use futuresdr::runtime::FlowgraphHandle;
+use futuresdr::runtime::Kernel;
+use futuresdr::runtime::MessageIo;
+use futuresdr::runtime::MessageIoBuilder;
+use futuresdr::runtime::Pmt;
+use futuresdr::runtime::Result;
+use futuresdr::runtime::Runtime;
+use futuresdr::runtime::StreamIo;
+use futuresdr::runtime::StreamIoBuilder;
+use futuresdr::runtime::TypedBlock;
+use futuresdr::runtime::WorkIo;
 use prophecy::leptos::html::Span;
 use prophecy::leptos::wasm_bindgen::JsCast;
 use prophecy::leptos::*;
@@ -10,26 +30,6 @@ use prophecy::WaterfallMode;
 use std::cell::RefCell;
 use std::rc::Rc;
 use web_sys::HtmlInputElement;
-
-use futuresdr::anyhow::Result;
-use futuresdr::blocks::wasm::HackRf;
-use futuresdr::blocks::Fft;
-use futuresdr::blocks::FftDirection;
-use futuresdr::macros::async_trait;
-use futuresdr::macros::connect;
-use futuresdr::runtime::Block;
-use futuresdr::runtime::BlockMeta;
-use futuresdr::runtime::BlockMetaBuilder;
-use futuresdr::runtime::Flowgraph;
-use futuresdr::runtime::FlowgraphHandle;
-use futuresdr::runtime::Kernel;
-use futuresdr::runtime::MessageIo;
-use futuresdr::runtime::MessageIoBuilder;
-use futuresdr::runtime::Pmt;
-use futuresdr::runtime::Runtime;
-use futuresdr::runtime::StreamIo;
-use futuresdr::runtime::StreamIoBuilder;
-use futuresdr::runtime::WorkIo;
 
 const FFT_SIZE: usize = 2048;
 
@@ -219,8 +219,8 @@ unsafe impl Send for Sink {}
 
 impl Sink {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(data: Vec<Rc<RefCell<Option<Vec<u8>>>>>) -> Block {
-        Block::new(
+    pub fn new(data: Vec<Rc<RefCell<Option<Vec<u8>>>>>) -> TypedBlock<Self> {
+        TypedBlock::new(
             BlockMetaBuilder::new("Sink").build(),
             StreamIoBuilder::new().add_input::<f32>("in").build(),
             MessageIoBuilder::new().build(),
@@ -273,7 +273,7 @@ async fn run(
     let src = HackRf::new();
     let fft = Fft::with_options(FFT_SIZE, FftDirection::Forward, true, None);
     let mag_sqr = crate::power_block();
-    let keep = crate::Keep1InN::<FFT_SIZE>::new(0.1, 3);
+    let keep = MovingAvg::<FFT_SIZE>::new(0.1, 3);
     let snk = Sink::new(data);
 
     futuresdr::runtime::config::set("slab_reserved", 0);

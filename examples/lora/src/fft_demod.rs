@@ -1,13 +1,6 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use rustfft::FftPlanner;
-
-use futuresdr::anyhow::Result;
 use futuresdr::macros::async_trait;
 use futuresdr::num_complex::Complex32;
 use futuresdr::num_complex::Complex64;
-use futuresdr::runtime::Block;
 use futuresdr::runtime::BlockMeta;
 use futuresdr::runtime::BlockMetaBuilder;
 use futuresdr::runtime::ItemTag;
@@ -15,15 +8,18 @@ use futuresdr::runtime::Kernel;
 use futuresdr::runtime::MessageIo;
 use futuresdr::runtime::MessageIoBuilder;
 use futuresdr::runtime::Pmt;
+use futuresdr::runtime::Result;
 use futuresdr::runtime::StreamIo;
 use futuresdr::runtime::StreamIoBuilder;
 use futuresdr::runtime::Tag;
+use futuresdr::runtime::TypedBlock;
 use futuresdr::runtime::WorkIo;
 use futuresdr::tracing::warn;
+use rustfft::FftPlanner;
+use std::collections::HashMap;
+use std::sync::Arc;
 
-use crate::utilities::*;
-
-// use scilib::math::bessel;
+use crate::utils::*;
 
 #[allow(non_snake_case)]
 pub fn bessel_I0(x: f64) -> f64 {
@@ -64,7 +60,7 @@ pub struct FftDemod {
 }
 
 impl FftDemod {
-    pub fn new(soft_decoding: bool, sf_initial: usize) -> Block {
+    pub fn new(soft_decoding: bool, sf_initial: usize) -> TypedBlock<Self> {
         let m_samples_per_symbol = 1_usize << sf_initial;
         let fft_plan = FftPlanner::new().plan_fft_forward(m_samples_per_symbol);
         let fs = Self {
@@ -93,7 +89,7 @@ impl FftDemod {
         } else {
             sio = sio.add_output::<u16>("out")
         }
-        Block::new(
+        TypedBlock::new(
             BlockMetaBuilder::new("FftDemod").build(),
             sio.build(),
             MessageIoBuilder::new().build(),
@@ -354,8 +350,8 @@ impl Kernel for FftDemod {
                 // new frame beginning
                 {
                     // warn!("FftDemod: received new header tag.");
-                    let cfo_int = if let Pmt::F32(tmp) = tag.get("cfo_int").unwrap() {
-                        *tmp as isize
+                    let cfo_int = if let Pmt::Isize(tmp) = tag.get("cfo_int").unwrap() {
+                        *tmp
                     } else {
                         panic!()
                     };

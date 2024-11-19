@@ -1,7 +1,8 @@
 #![allow(unused_imports)]
 use futuresdr::futures::StreamExt;
 use futuresdr::runtime::Pmt;
-use gloo_net::websocket::{futures::WebSocket, Message};
+use gloo_net::websocket::futures::WebSocket;
+use gloo_net::websocket::Message;
 use leptos::html::Input;
 use leptos::html::Span;
 use leptos::logging::*;
@@ -300,5 +301,5 @@ pub fn Prophecy() -> impl IntoView {
 
 pub fn main() {
     console_error_panic_hook::set_once();
-    mount_to_body(|| view! { <FlowgraphCanvas /> })
+    mount_to_body(|| view! { <Prophecy /> })
 }

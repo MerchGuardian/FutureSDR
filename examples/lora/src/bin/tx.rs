@@ -1,18 +1,18 @@
+use anyhow::Result;
 use clap::Parser;
-use futuresdr::anyhow::Result;
 use futuresdr::async_io::Timer;
 use futuresdr::blocks::seify::SinkBuilder;
 use futuresdr::macros::connect;
+use futuresdr::runtime::BlockT;
 use futuresdr::runtime::Flowgraph;
 use futuresdr::runtime::Pmt;
 use futuresdr::runtime::Runtime;
 use futuresdr::tracing::info;
 use std::time::Duration;
 
-use lora::utilities::Bandwidth;
-use lora::utilities::Channel;
-use lora::utilities::CodeRate;
-use lora::utilities::SpreadingFactor;
+use lora::utils::Bandwidth;
+use lora::utils::CodeRate;
+use lora::utils::SpreadingFactor;
 use lora::Transmitter;
 
 #[derive(Parser, Debug)]
@@ -21,31 +21,31 @@ struct Args {
     #[clap(long)]
     antenna: Option<String>,
     /// Seify Device Args
-    #[clap(long)]
+    #[clap(short, long)]
     args: Option<String>,
     /// TX Gain
-    #[clap(long, default_value_t = 50.0)]
+    #[clap(short, long, default_value_t = 50.0)]
     gain: f64,
     /// Oversampling Factor
-    #[clap(long, default_value_t = 4)]
+    #[clap(short, long, default_value_t = 4)]
     oversampling: usize,
-    /// Center Frequency
-    #[clap(long, value_enum, default_value_t = Channel::EU868_1)]
-    channel: Channel,
+    /// Channel Frequency
+    #[clap(short, long)]
+    freq: f64,
     /// Send periodic messages for testing
-    #[clap(long, default_value_t = 2.0)]
+    #[clap(short, long, default_value_t = 2.0)]
     tx_interval: f32,
     /// Spreading Factor
-    #[clap(long, value_enum, default_value_t = SpreadingFactor::SF7)]
+    #[clap(short, long, value_enum, default_value_t = SpreadingFactor::SF7)]
     spreading_factor: SpreadingFactor,
     /// Sync Word
     #[clap(long, default_value_t = 0x0816)]
     sync_word: usize,
     /// LoRa Bandwidth
-    #[clap(long, value_enum, default_value_t = Bandwidth::BW125)]
+    #[clap(short, long, value_enum, default_value_t = Bandwidth::BW125)]
     bandwidth: Bandwidth,
     /// LoRa Code Rate
-    #[clap(long, value_enum, default_value_t = CodeRate::CR_4_5)]
+    #[clap(short, long, value_enum, default_value_t = CodeRate::CR_4_5)]
     code_rate: CodeRate,
 }
 
@@ -62,7 +62,7 @@ fn main() -> Result<()> {
 
     let sink = SinkBuilder::new()
         .sample_rate((Into::<usize>::into(args.bandwidth) * args.oversampling) as f64)
-        .frequency(args.channel.into())
+        .frequency(args.freq)
         .gain(args.gain)
         .antenna(args.antenna)
         .args(args.args)?

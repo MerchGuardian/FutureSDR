@@ -1,16 +1,19 @@
 use futures::channel::mpsc::Sender;
+use slab::Slab;
+use std::any::Any;
+use std::any::TypeId;
 use std::collections::HashMap;
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 use crate::runtime::buffer::BufferBuilder;
 use crate::runtime::buffer::BufferWriter;
 use crate::runtime::Block;
 use crate::runtime::BlockMessage;
+use crate::runtime::ConnectCtx;
 use crate::runtime::Error;
 use crate::runtime::PortId;
-use slab::Slab;
-use std::any::{Any, TypeId};
-use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
 
 pub trait BufferBuilderKey: Debug + Send + Sync {
     fn eq(&self, other: &dyn BufferBuilderKey) -> bool;
@@ -115,28 +118,18 @@ impl Topology {
     }
 
     /// Adds a [Block] to the [Topology] returning the `id` of the [Block] in the [Topology].
-    pub fn add_block(&mut self, mut block: Block) -> usize {
-        let (mut i, base_name, mut block_name) = if let Some(name) = block.instance_name() {
-            (-1, name.to_string(), name.to_string())
-        } else {
-            (
-                0,
-                block.type_name().to_string(),
-                format!("{}_0", block.type_name()),
-            )
-        };
-
-        // find a unique name
-        loop {
-            if self.block_id(&block_name).is_none() {
-                break;
+    pub fn add_block(&mut self, mut block: Block) -> Result<usize, Error> {
+        if let Some(name) = block.instance_name() {
+            if self.block_id(name).is_some() {
+                return Err(Error::DuplicateBlockName(name.to_string()));
             }
-            i += 1;
-            block_name = format!("{base_name}_{i}");
+        } else {
+            let block_name = block.type_name();
+            let block_id = self.blocks.vacant_key();
+            block.set_instance_name(format!("{}-{}", block_name, block_id));
         }
 
-        block.set_instance_name(block_name);
-        self.blocks.insert(Some(block))
+        Ok(self.blocks.insert(Some(block)))
     }
 
     /// Removes a [Block] and all edges connected to the [Block] from the [Topology].
@@ -184,12 +177,12 @@ impl Topology {
         let src_port_id = match src_port {
             PortId::Name(ref s) => src
                 .stream_output_name_to_id(s)
-                .ok_or(Error::InvalidStreamPort(src_block, src_port.clone()))?,
+                .ok_or(Error::InvalidStreamPort(src.into(), src_port.clone()))?,
             PortId::Index(i) => {
                 if i < src.stream_outputs().len() {
                     i
                 } else {
-                    return Err(Error::InvalidStreamPort(src_block, src_port));
+                    return Err(Error::InvalidStreamPort(src.into(), src_port));
                 }
             }
         };
@@ -198,21 +191,21 @@ impl Topology {
         let dst_port_id = match dst_port {
             PortId::Name(ref s) => dst
                 .stream_input_name_to_id(s)
-                .ok_or(Error::InvalidStreamPort(dst_block, dst_port.clone()))?,
+                .ok_or(Error::InvalidStreamPort(dst.into(), dst_port.clone()))?,
             PortId::Index(i) => {
                 if i < dst.stream_inputs().len() {
                     i
                 } else {
-                    return Err(Error::InvalidStreamPort(dst_block, dst_port));
+                    return Err(Error::InvalidStreamPort(dst.into(), dst_port));
                 }
             }
         };
         let dp = dst.stream_input(dst_port_id);
 
         if sp.type_id() != dp.type_id() {
-            return Err(Error::ConnectError(
-                src_block, src_port, dst_block, dst_port,
-            ));
+            return Err(Error::ConnectError(Box::new(ConnectCtx::new(
+                src_block, src, &src_port, sp, dst_block, dst, &dst_port, dp,
+            ))));
         }
 
         let buffer_entry = BufferBuilderEntry {
@@ -252,24 +245,24 @@ impl Topology {
         let src_port_id = match src_port {
             PortId::Name(ref s) => src
                 .message_output_name_to_id(s)
-                .ok_or(Error::InvalidMessagePort(Some(src_block), src_port.clone()))?,
+                .ok_or(Error::InvalidMessagePort(src.into(), src_port.clone()))?,
             PortId::Index(i) => {
                 if i < src.message_outputs().len() {
                     i
                 } else {
-                    return Err(Error::InvalidMessagePort(Some(src_block), src_port.clone()));
+                    return Err(Error::InvalidMessagePort(src.into(), src_port.clone()));
                 }
             }
         };
         let dst_port_id = match dst_port {
             PortId::Name(ref s) => dst
                 .message_input_name_to_id(s)
-                .ok_or(Error::InvalidMessagePort(Some(dst_block), dst_port.clone()))?,
+                .ok_or(Error::InvalidMessagePort(dst.into(), dst_port.clone()))?,
             PortId::Index(i) => {
                 if i < dst.message_outputs().len() {
                     i
                 } else {
-                    return Err(Error::InvalidMessagePort(Some(dst_block), dst_port));
+                    return Err(Error::InvalidMessagePort(dst.into(), dst_port));
                 }
             }
         };
@@ -280,7 +273,7 @@ impl Topology {
         Ok(())
     }
 
-    /// Validate flowgraph topology
+    /// Validate [Flowgraph](crate::runtime::Flowgraph) topology.
     ///
     /// Make sure that all stream ports are connected. Check if connections are valid, e.g., every
     /// stream input has exactly one connection.

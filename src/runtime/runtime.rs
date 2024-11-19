@@ -2,7 +2,9 @@
 use async_io::block_on;
 #[cfg(not(target_arch = "wasm32"))]
 use axum::Router;
-use futures::channel::mpsc::{channel, Receiver, Sender};
+use futures::channel::mpsc::channel;
+use futures::channel::mpsc::Receiver;
+use futures::channel::mpsc::Sender;
 use futures::channel::oneshot;
 use futures::prelude::*;
 use futures::FutureExt;
@@ -38,13 +40,13 @@ pub struct TaskHandle<'a, T> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<'a, T> Drop for TaskHandle<'a, T> {
+impl<T> Drop for TaskHandle<'_, T> {
     fn drop(&mut self) {
         self.task.take().unwrap().detach()
     }
 }
 
-impl<'a, T> TaskHandle<'a, T> {
+impl<T> TaskHandle<'_, T> {
     fn new(task: Task<T>) -> Self {
         TaskHandle {
             task: Some(task),
@@ -53,7 +55,7 @@ impl<'a, T> TaskHandle<'a, T> {
     }
 }
 
-impl<'a, T> std::future::Future for TaskHandle<'a, T> {
+impl<T> std::future::Future for TaskHandle<'_, T> {
     type Output = T;
     fn poll(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Self::Output> {
         self.task.as_mut().unwrap().poll_unpin(cx)
@@ -71,7 +73,7 @@ pub struct Runtime<'a, S> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<'a> Runtime<'a, SmolScheduler> {
+impl Runtime<'_, SmolScheduler> {
     /// Constructs a new [Runtime] using [SmolScheduler::default()] for the [Scheduler].
     pub fn new() -> Self {
         Self::with_custom_routes(Router::new())
@@ -96,14 +98,14 @@ impl<'a> Runtime<'a, SmolScheduler> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<'a> Default for Runtime<'a, SmolScheduler> {
+impl Default for Runtime<'_, SmolScheduler> {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[cfg(target_arch = "wasm32")]
-impl<'a> Runtime<'a, WasmScheduler> {
+impl Runtime<'_, WasmScheduler> {
     /// Create Runtime
     pub fn new() -> Self {
         runtime::init();
@@ -118,7 +120,7 @@ impl<'a> Runtime<'a, WasmScheduler> {
 }
 
 #[cfg(target_arch = "wasm32")]
-impl<'a> Default for Runtime<'a, WasmScheduler> {
+impl Default for Runtime<'_, WasmScheduler> {
     fn default() -> Self {
         Self::new()
     }

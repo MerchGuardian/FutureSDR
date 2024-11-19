@@ -30,6 +30,7 @@ pub struct StreamInput {
     name: String,
     item_size: usize,
     type_id: TypeId,
+    type_name: &'static str,
     reader: Option<BufferReader>,
     current: Option<CurrentInput>,
     tags: Vec<ItemTag>,
@@ -42,6 +43,7 @@ impl StreamInput {
             name: name.to_string(),
             item_size: std::mem::size_of::<T>(),
             type_id: TypeId::of::<T>(),
+            type_name: std::any::type_name::<T>(),
             reader: None,
             current: None,
             tags: Vec::new(),
@@ -53,9 +55,19 @@ impl StreamInput {
         self.item_size
     }
 
-    /// Get [`TypeId`] of items, handled by the port
-    pub fn type_id(&self) -> TypeId {
+    /// Get [`TypeId`] of items handled by the port
+    pub(crate) fn type_id(&self) -> TypeId {
         self.type_id
+    }
+
+    /// Get the diagnostic type name of items handled by the port.
+    ///
+    /// # Note
+    /// The value returned cannot be assumed to uniquely identify a type, and should only be
+    /// used for debugging and diagnostic purposes. See [`std::any::type_name`] for
+    /// further details, caveats, and restrictions.
+    pub(crate) fn type_name(&self) -> &'static str {
+        self.type_name
     }
 
     /// Get name of port
@@ -65,7 +77,7 @@ impl StreamInput {
 
     /// Try to cast buffer reader to specific type
     pub fn try_as<T: 'static>(&mut self) -> Option<&mut T> {
-        self.reader.as_mut().unwrap().try_as::<T>()
+        self.reader.as_mut().and_then(|r| r.try_as::<T>())
     }
 
     /// Consume `amount` samples from buffer
@@ -85,14 +97,8 @@ impl StreamInput {
         self.tags.iter_mut().for_each(|x| x.index -= amount);
     }
 
-    /// Get buffer content as slice
-    pub fn slice<T>(&mut self) -> &'static [T] {
-        assert_eq!(self.type_id, TypeId::of::<T>());
-        self.slice_unchecked()
-    }
-
-    /// Get buffer content as slice without checking the type
-    pub fn slice_unchecked<T>(&mut self) -> &'static [T] {
+    /// Update current input record from reader
+    fn advance_input(&mut self) {
         if self.current.is_none() {
             let (ptr, len, tags) = self.reader.as_mut().unwrap().bytes();
             self.tags = tags;
@@ -104,7 +110,17 @@ impl StreamInput {
                 tags: self.tags.clone(),
             });
         }
+    }
 
+    /// Get buffer content as slice
+    pub fn slice<T>(&mut self) -> &'static [T] {
+        assert_eq!(self.type_id, TypeId::of::<T>());
+        self.slice_unchecked()
+    }
+
+    /// Get buffer content as slice without checking the type
+    pub fn slice_unchecked<T>(&mut self) -> &'static [T] {
+        self.advance_input();
         let c = self.current.as_ref().unwrap();
         if c.ptr.is_null() {
             &[]
@@ -133,6 +149,7 @@ impl StreamInput {
 
     /// Get [`ItemTags`](ItemTag) in buffer
     pub fn tags(&mut self) -> &mut Vec<ItemTag> {
+        self.advance_input();
         &mut self.tags
     }
 
@@ -185,6 +202,7 @@ pub struct StreamOutput {
     name: String,
     item_size: usize,
     type_id: TypeId,
+    type_name: &'static str,
     writer: Option<BufferWriter>,
     tags: Vec<ItemTag>,
     offset: usize,
@@ -197,6 +215,7 @@ impl StreamOutput {
             name: name.to_string(),
             item_size: std::mem::size_of::<T>(),
             type_id: TypeId::of::<T>(),
+            type_name: std::any::type_name::<T>(),
             writer: None,
             tags: Vec::new(),
             offset: 0,
@@ -209,8 +228,18 @@ impl StreamOutput {
     }
 
     /// Get [`TypeId`] of items, handled by the port
-    pub fn type_id(&self) -> TypeId {
+    pub(crate) fn type_id(&self) -> TypeId {
         self.type_id
+    }
+
+    /// Get the diagnostic type name of items handled by the port.
+    ///
+    /// # Note
+    /// The value returned cannot be assumed to uniquely identify a type, and should only be
+    /// used for debugging and diagnostic purposes. See [`std::any::type_name`] for
+    /// further details, caveats, and restrictions.
+    pub(crate) fn type_name(&self) -> &'static str {
+        self.type_name
     }
 
     /// Get name of port
@@ -319,6 +348,7 @@ impl StreamOutput {
     }
 
     /// Get a mutable reference to the buffer writer
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn writer_mut(&mut self) -> &mut BufferWriter {
         let w = self.writer.as_mut().unwrap();
         w

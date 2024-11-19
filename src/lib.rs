@@ -12,15 +12,15 @@
 //! ## Example
 //! An example flowgraph that forwards 123 zeros into a sink:
 //! ```
-//! use futuresdr::anyhow::Result;
 //! use futuresdr::blocks::Head;
 //! use futuresdr::blocks::NullSink;
 //! use futuresdr::blocks::NullSource;
 //! use futuresdr::macros::connect;
+//! use futuresdr::runtime::Error;
 //! use futuresdr::runtime::Flowgraph;
 //! use futuresdr::runtime::Runtime;
 //!
-//! fn main() -> Result<()> {
+//! fn main() -> Result<(), Error> {
 //!     let mut fg = Flowgraph::new();
 //!
 //!     let src = NullSource::<u8>::new();
@@ -35,11 +35,13 @@
 //! }
 //! ```
 
-pub mod blocks;
-pub mod runtime;
+#[macro_use]
+extern crate futuresdr_macros;
+/// Logging macro
+#[macro_use]
+pub extern crate tracing;
 
 // re-exports
-pub use anyhow;
 #[cfg(not(target_arch = "wasm32"))]
 pub use async_io;
 #[cfg(not(target_arch = "wasm32"))]
@@ -47,22 +49,20 @@ pub use async_net;
 pub use futuredsp;
 pub use futures;
 pub use futures_lite;
-/// Logging macro
-#[macro_use]
-pub extern crate tracing;
-#[macro_use]
-extern crate futuresdr_macros;
+pub use num_complex;
+pub use num_integer;
+#[cfg(feature = "seify")]
+pub use seify;
+
+pub mod blocks;
+pub mod runtime;
 
 /// Macros
 pub mod macros {
     #[doc(hidden)]
     pub use async_trait::async_trait as async_trait_orig;
+
     pub use futuresdr_macros::async_trait_external as async_trait;
     pub use futuresdr_macros::connect;
     pub use futuresdr_macros::message_handler_external as message_handler;
 }
-
-pub use num_complex;
-pub use num_integer;
-#[cfg(feature = "seify")]
-pub use seify;

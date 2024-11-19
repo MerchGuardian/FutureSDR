@@ -38,65 +38,8 @@ pub const WHITENING_SEQ: [u8; 255] = [
 #[derive(Debug, Clone, clap::ValueEnum, Copy, Default)]
 #[clap(rename_all = "SCREAMING_SNAKE_CASE")]
 #[allow(non_camel_case_types)]
-pub enum Channel {
-    #[default]
-    EU868_1,
-    EU868_2,
-    EU868_3,
-    EU868_4,
-    EU868_5,
-    EU868_6,
-    EU868_7,
-    EU868_8,
-    EU868_9,
-    EU868_Down,
-}
-
-impl From<Channel> for u32 {
-    fn from(value: Channel) -> Self {
-        match value {
-            Channel::EU868_1 => 868_100_000,
-            Channel::EU868_2 => 868_300_000,
-            Channel::EU868_3 => 868_500_000,
-            Channel::EU868_4 => 867_100_000,
-            Channel::EU868_5 => 867_300_000,
-            Channel::EU868_6 => 867_500_000,
-            Channel::EU868_7 => 867_700_000,
-            Channel::EU868_8 => 867_900_000,
-            Channel::EU868_9 => 868_800_000,
-            Channel::EU868_Down => 869_525_000,
-        }
-    }
-}
-
-impl From<Channel> for u64 {
-    fn from(value: Channel) -> Self {
-        Into::<u32>::into(value) as u64
-    }
-}
-
-impl From<Channel> for usize {
-    fn from(value: Channel) -> Self {
-        Into::<u32>::into(value) as usize
-    }
-}
-
-impl From<Channel> for f32 {
-    fn from(value: Channel) -> Self {
-        Into::<u32>::into(value) as f32
-    }
-}
-
-impl From<Channel> for f64 {
-    fn from(value: Channel) -> Self {
-        Into::<u32>::into(value) as f64
-    }
-}
-
-#[derive(Debug, Clone, clap::ValueEnum, Copy, Default)]
-#[clap(rename_all = "SCREAMING_SNAKE_CASE")]
-#[allow(non_camel_case_types)]
 pub enum Bandwidth {
+    BW62,
     #[default]
     BW125,
     BW250,
@@ -106,6 +49,7 @@ pub enum Bandwidth {
 impl From<Bandwidth> for u32 {
     fn from(value: Bandwidth) -> Self {
         match value {
+            Bandwidth::BW62 => 62_500,
             Bandwidth::BW125 => 125_000,
             Bandwidth::BW250 => 250_000,
             Bandwidth::BW500 => 500_000,
@@ -445,7 +389,7 @@ where
         .iter()
         .max_by(|(_, val_a), (_, val_b)| val_a.cmp(val_b))
         .map(|(k, _)| k)
-        .unwrap_or_else(|| panic!("lora::utilities::most_frequent was called on empty slice."))
+        .unwrap_or_else(|| panic!("lora::utils::most_frequent was called on empty slice."))
         .to_owned()
 }
 

@@ -1,5 +1,6 @@
+use anyhow::anyhow;
+use anyhow::Result;
 use clap::Parser;
-use futuresdr::anyhow::{anyhow, Result};
 use futuresdr::blocks::seify::SourceBuilder;
 use futuresdr::blocks::BlobToUdp;
 use futuresdr::macros::connect;
@@ -9,9 +10,8 @@ use futuresdr::runtime::Runtime;
 use futuresdr::tracing::error;
 use futuresdr::tracing::info;
 
-use lora::utilities::Bandwidth;
-use lora::utilities::Channel;
-use lora::utilities::SpreadingFactor;
+use lora::utils::Bandwidth;
+use lora::utils::SpreadingFactor;
 use lora::Decoder;
 use lora::Deinterleaver;
 use lora::FftDemod;
@@ -31,25 +31,20 @@ struct Args {
     #[clap(short, long)]
     args: Option<String>,
     /// RX Gain
-    #[clap(long, default_value_t = 50.0)]
+    #[clap(short, long, default_value_t = 50.0)]
     gain: f64,
-    /// RX Channel
-    #[clap(long, value_enum, default_value_t = Channel::EU868_1)]
-    channel: Channel,
+    /// Channel Frequency
+    #[clap(short, long)]
+    freq: f64,
     /// LoRa Spreading Factor
-    #[clap(long, value_enum, default_value_t = SpreadingFactor::SF7)]
+    #[clap(short, long, value_enum, default_value_t = SpreadingFactor::SF7)]
     spreading_factor: SpreadingFactor,
     /// LoRa Bandwidth
-    #[clap(long, value_enum, default_value_t = Bandwidth::BW125)]
+    #[clap(short, long, value_enum, default_value_t = Bandwidth::BW125)]
     bandwidth: Bandwidth,
-    /// LoRa Sync Word
-    #[clap(long, default_value_t = 0x12)]
-    sync_word: u8,
-    /// Oversampling Factor
-    #[clap(long, default_value_t = 4)]
-    oversampling: usize,
 }
 
+const OVERSAMPLING: usize = 4;
 const SOFT_DECODING: bool = false;
 const IMPLICIT_HEADER: bool = false;
 
@@ -59,23 +54,24 @@ fn main() -> Result<()> {
     info!("args {:?}", &args);
 
     let src = SourceBuilder::new()
-        .sample_rate((Into::<usize>::into(args.bandwidth) * args.oversampling) as f64)
-        .frequency(args.channel.into())
+        .sample_rate(Into::<f64>::into(args.bandwidth) * OVERSAMPLING as f64)
+        .frequency(args.freq)
         .gain(args.gain)
         .antenna(args.antenna)
         .args(args.args)?
         .build()?;
 
     let frame_sync = FrameSync::new(
-        args.channel.into(),
+        args.freq as u32,
         args.bandwidth.into(),
         args.spreading_factor.into(),
         IMPLICIT_HEADER,
-        vec![vec![args.sync_word.into()]],
-        args.oversampling,
+        vec![],
+        OVERSAMPLING,
         None,
         Some("header_crc_ok"),
         false,
+        None,
     );
     let fft_demod = FftDemod::new(SOFT_DECODING, args.spreading_factor.into());
     let gray_mapping = GrayMapping::new(SOFT_DECODING);
