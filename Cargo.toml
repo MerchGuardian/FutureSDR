@@ -101,7 +101,6 @@ web-time = { version = "1.1" }
 wgpu = { version = "0.20", optional = true }
 async-std = "1.12.0"
 
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 cpal = { version = "0.15", optional = true, features = ['wasm-bindgen'] }
 getrandom = { version = "0.2", features = ["js"] }
@@ -146,6 +145,7 @@ xilinx-dma = { version = "0.0.10", features = ["async"], optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.14"
+# shared cxx flag needed on android
 cpal = { version = "0.15", optional = true, features = ['wasm-bindgen', 'oboe-shared-stdcxx'] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
