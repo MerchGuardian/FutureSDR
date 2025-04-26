@@ -18,7 +18,7 @@ seify = ["dep:seify"]
 [dependencies]
 dyn-clone = "1.0"
 num-complex = { version = "0.4", features = ["serde"] }
-seify = { version = "0.16", default-features = false, optional = true }
+seify = { git = "https://github.com/MerchGuardian/seify.git", branch = "main", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
