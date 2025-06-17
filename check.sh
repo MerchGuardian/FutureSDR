@@ -16,7 +16,6 @@ CARGO_FMT="cargo +nightly fmt"
 cd ${SCRIPTPATH} && ${CARGO_FMT} --check
 cd ${SCRIPTPATH}/crates/futuredsp && ${CARGO_FMT} --check
 cd ${SCRIPTPATH}/crates/macros && ${CARGO_FMT} --check
-cd ${SCRIPTPATH}/crates/prophecy && ${CARGO_FMT} --check
 cd ${SCRIPTPATH}/crates/remote && ${CARGO_FMT} --check
 cd ${SCRIPTPATH}/crates/types && ${CARGO_FMT} --check
 
