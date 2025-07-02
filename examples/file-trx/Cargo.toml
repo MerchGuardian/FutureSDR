@@ -1,0 +1,25 @@
+[package]
+name = "file-trx"
+version = "0.1.0"
+edition = "2024"
+default-run = "rx"
+
+[workspace]
+
+[[bin]]
+name = "rx"
+path = "rx.rs"
+
+[[bin]]
+name = "tx"
+path = "tx.rs"
+
+[features]
+default = ["soapy"]
+aaronia_http = ["futuresdr/aaronia_http"]
+soapy = ["futuresdr/soapy"]
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4", features = ["derive"] }
+futuresdr = { path = "../..", features = ["seify"] }

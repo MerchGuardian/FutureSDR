@@ -1,0 +1,15 @@
+[package]
+name = "logging"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+
+[dependencies]
+anyhow = "1.0"
+futuresdr = { path = "../.." }
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+
+[[bin]]
+name = "logging"
+path = "logging.rs"

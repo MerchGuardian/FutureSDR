@@ -1,0 +1,27 @@
+[package]
+name = "audio"
+version = "0.0.1"
+edition = "2024"
+
+[workspace]
+
+[[bin]]
+name = "play-file"
+path = "play_file.rs"
+
+[[bin]]
+name = "play-tone"
+path = "play_tone.rs"
+
+[[bin]]
+name = "play-stereo"
+path = "play_stereo.rs"
+
+[[bin]]
+name = "play-selectable-tone"
+path = "play_selectable_tone.rs"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4", features = ["derive"] }
+futuresdr = { path = "../..", features = ["audio", "zeromq"] }

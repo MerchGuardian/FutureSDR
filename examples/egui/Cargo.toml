@@ -1,0 +1,20 @@
+[package]
+name = "futuresdr-egui"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+
+[features]
+default = ["soapy"]
+aaronia_http = ["futuresdr/aaronia_http"]
+soapy = ["futuresdr/soapy"]
+
+[dependencies]
+anyhow ="1.0"
+eframe = "0.31"
+futuresdr = { path = "../..", features = ["seify"] }
+futuresdr-remote = { path = "../../crates/remote/" }
+tokio = { version = "1", features = ["full"] }
+tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
+

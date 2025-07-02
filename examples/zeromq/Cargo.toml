@@ -1,0 +1,18 @@
+[package]
+name = "zeromq"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+
+[dependencies]
+anyhow = "1.0"
+futuresdr = { path = "../..", features = ["zeromq"] }
+
+[[bin]]
+name = "zmq-receiver"
+path = "zmq_receiver.rs"
+
+[[bin]]
+name = "zmq-sender"
+path = "zmq_sender.rs"

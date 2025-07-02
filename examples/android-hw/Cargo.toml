@@ -1,0 +1,14 @@
+[package]
+name = "androidhw"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+anyhow = "1.0"
+futuresdr = { path = "../..", features = ["soapy"] }
+jni = { version = "0.21" }
